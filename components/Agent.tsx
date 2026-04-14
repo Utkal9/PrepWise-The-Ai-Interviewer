@@ -118,12 +118,17 @@ const Agent = ({
     setCallStatus(CallStatus.CONNECTING);
 
     if (type === "generate") {
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
-      });
+      const assistantId = process.env.NEXT_PUBLIC_VAPI_QUESTION_GENERATOR_ID;
+
+      if (!assistantId) {
+        alert(
+          "Question Generator Assistant ID not configured. Please set NEXT_PUBLIC_VAPI_QUESTION_GENERATOR_ID in .env.local"
+        );
+        setCallStatus(CallStatus.INACTIVE);
+        return;
+      }
+
+      await vapi.start(assistantId);
     } else {
       let formattedQuestions = "";
       if (questions) {

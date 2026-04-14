@@ -5,9 +5,34 @@ import { adminDb } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 
 export async function POST(request: Request) {
-  const { type, role, level, techstack, amount, userid } = await request.json();
+  const body = await request.json();
+
+  // Handle both standard direct JSON payload and Vapi Tool Call Webhook payload
+  let payload = body;
+  if (
+    body.message?.type === "tool-calls" &&
+    body.message.toolWithToolCallList?.[0]?.toolCall?.function?.arguments
+  ) {
+    payload = {
+      ...body.message.toolWithToolCallList[0].toolCall.function.arguments,
+      // User ID might be passed as a tool argument or be in the call variables
+      userid:
+        body.message.toolWithToolCallList[0].toolCall.function.arguments
+          .userid || body.message.call?.variableValues?.userid,
+    };
+  }
+
+  const { type, role, level, techstack, amount, userid } = payload;
 
   try {
+    // Validate required fields
+    if (!techstack) {
+      return new Response(JSON.stringify({ error: "techstack is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const { text: questions } = await generateText({
       model: groq("llama-3.3-70b-versatile"),
       prompt: `Prepare questions for a job interview.
